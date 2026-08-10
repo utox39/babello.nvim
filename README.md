@@ -30,6 +30,8 @@ babello.nvim is a [Neovim](https://neovim.io/) plugin for [Babello](https://gith
 > [!NOTE]
 > This only installs the Neovim plugin. The plugin shells out to the `babello` binary on your `$PATH`, so you need to install [Babello](https://github.com/utox39/babello).
 
+### Lazy.nvim
+
 ```lua
 return {
   {
