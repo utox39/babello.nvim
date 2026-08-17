@@ -4,7 +4,7 @@ local selection = require("babello.selection")
 local M = {}
 
 -- Shows `text` in a floating scratch window. <CR>/r replaces `range` with it,
--- p pastes it below `range`, q/<Esc> discards it.
+-- p pastes it below `range`, y yanks it to the clipboard, q/<Esc> discards it.
 function M.show(range, text, opts)
   opts = opts or {}
   local lines = vim.split(text, "\n", { plain = true })
@@ -30,7 +30,7 @@ function M.show(range, text, opts)
     border = pconf.border,
     title = opts.title or " babello ",
     title_pos = "center",
-    footer = " <CR>/r replace   p paste   q/<Esc> cancel ",
+    footer = " <CR>/r replace   p paste   y yank   q/<Esc> cancel ",
     footer_pos = "center",
     style = "minimal",
   })
@@ -55,6 +55,10 @@ function M.show(range, text, opts)
   end)
   map("p", function()
     selection.paste_below(range, text)
+    close()
+  end)
+  map("y", function()
+    selection.yank(text)
     close()
   end)
   map("q", close)
