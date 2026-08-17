@@ -77,6 +77,7 @@ Either one opens a preview window with the result. From there:
 | ------------- | ---------------------------------------- |
 | `<CR>` or `r` | Replace the selection with the result   |
 | `p`           | Paste the result below the selection    |
+| `y`           | Yank the result to the system clipboard |
 | `q` or `<Esc>`| Cancel, discarding the result           |
 
 ### Configuration
