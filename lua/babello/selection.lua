@@ -55,4 +55,9 @@ function M.paste_below(range, text)
   vim.api.nvim_buf_set_lines(range.bufnr, range.end_row + 1, range.end_row + 1, false, lines)
 end
 
+-- Copies `text` to the system clipboard register.
+function M.yank(text)
+  vim.fn.setreg("+", text)
+end
+
 return M
