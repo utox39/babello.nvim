@@ -1,63 +1,67 @@
 local M = {}
 
 local function line_length(bufnr, row)
-  local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1]
-  return line and #line or 0
+	local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1]
+	return line and #line or 0
 end
 
 -- Reads the last visual selection ('<, '> marks) from the current buffer.
 -- Supports charwise ('v') and linewise ('V') selections.
 function M.get()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local start_pos = vim.fn.getpos("'<")
-  local end_pos = vim.fn.getpos("'>")
+	-- The '< and '> marks are only updated when visual mode is left, so when
+	-- called from a visual-mode keymap they still point at the previous
+	-- selection. Leave visual mode synchronously first to refresh them.
+	local mode = vim.fn.mode()
+	if mode == "v" or mode == "V" or mode == "\22" then
+		vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "nx", false)
+	end
 
-  local start_row, start_col = start_pos[2] - 1, start_pos[3] - 1
-  local end_row, end_col = end_pos[2] - 1, end_pos[3] - 1
+	local bufnr = vim.api.nvim_get_current_buf()
+	local start_pos = vim.fn.getpos("'<")
+	local end_pos = vim.fn.getpos("'>")
 
-  if vim.fn.visualmode() == "V" then
-    start_col = 0
-    end_col = line_length(bufnr, end_row)
-  else
-    local end_line_len = line_length(bufnr, end_row)
-    end_col = math.min(end_col + 1, end_line_len)
-  end
+	local start_row, start_col = start_pos[2] - 1, start_pos[3] - 1
+	local end_row, end_col = end_pos[2] - 1, end_pos[3] - 1
 
-  local lines = vim.api.nvim_buf_get_text(bufnr, start_row, start_col, end_row, end_col, {})
+	if vim.fn.visualmode() == "V" then
+		start_col = 0
+		end_col = line_length(bufnr, end_row)
+	else
+		local end_line = vim.api.nvim_buf_get_lines(bufnr, end_row, end_row + 1, false)[1] or ""
+		-- '> points at the first byte of the last character; include all of its
+		-- bytes so multibyte characters (à, è, ...) aren't cut in half.
+		local last_char = vim.fn.strpart(end_line, end_col, 1, 1)
+		end_col = math.min(end_col + math.max(#last_char, 1), #end_line)
+	end
 
-  return {
-    bufnr = bufnr,
-    start_row = start_row,
-    start_col = start_col,
-    end_row = end_row,
-    end_col = end_col,
-    lines = lines,
-    text = table.concat(lines, "\n"),
-  }
+	local lines = vim.api.nvim_buf_get_text(bufnr, start_row, start_col, end_row, end_col, {})
+
+	return {
+		bufnr = bufnr,
+		start_row = start_row,
+		start_col = start_col,
+		end_row = end_row,
+		end_col = end_col,
+		lines = lines,
+		text = table.concat(lines, "\n"),
+	}
 end
 
 -- Overwrites the given range with `text` (may contain embedded newlines).
 function M.replace(range, text)
-  local lines = vim.split(text, "\n", { plain = true })
-  vim.api.nvim_buf_set_text(
-    range.bufnr,
-    range.start_row,
-    range.start_col,
-    range.end_row,
-    range.end_col,
-    lines
-  )
+	local lines = vim.split(text, "\n", { plain = true })
+	vim.api.nvim_buf_set_text(range.bufnr, range.start_row, range.start_col, range.end_row, range.end_col, lines)
 end
 
 -- Inserts `text` as new lines immediately after the range's end line.
 function M.paste_below(range, text)
-  local lines = vim.split(text, "\n", { plain = true })
-  vim.api.nvim_buf_set_lines(range.bufnr, range.end_row + 1, range.end_row + 1, false, lines)
+	local lines = vim.split(text, "\n", { plain = true })
+	vim.api.nvim_buf_set_lines(range.bufnr, range.end_row + 1, range.end_row + 1, false, lines)
 end
 
 -- Copies `text` to the system clipboard register.
 function M.yank(text)
-  vim.fn.setreg("+", text)
+	vim.fn.setreg("+", text)
 end
 
 return M
